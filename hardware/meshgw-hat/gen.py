@@ -219,6 +219,11 @@ place("E22_900M30S", "U1", "E22-900M30S", (152.4, 118.11), {
 # C1 bulk: the 650 mA TX burst is a step load on a rail that arrives through
 # a stacking header. C2/C3 are the "external ceramic filter capacitor" the
 # datasheet asks for at each VCC pin.
+#
+# C1's value says 6.3 V because that is what is in stock, and 6.3 V on a 5 V
+# rail is ~26 % headroom — right at the usual 80 % derating limit. BUY A 10 V
+# OR 16 V PART. The footprint (D8.0 mm, P3.50 mm) is unchanged either way, so
+# this is a purchasing decision, not a layout one.
 place("CP", "C1", "1000uF 6.3V", (109.22, 165.1), {"1": "+5V", "2": "GND"})
 place("C", "C2", "0.1uF", (129.54, 165.1), {"1": "+5V", "2": "GND"})
 place("C", "C3", "0.1uF", (147.32, 165.1), {"1": "+5V", "2": "GND"})

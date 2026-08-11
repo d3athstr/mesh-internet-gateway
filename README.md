@@ -114,7 +114,11 @@ scripts/               provisioning helpers
    a power fault, which is why `provision-meshgw.sh` starts at `tx_power 22`
    and leaves 30 for after the rail is proven.
 4. Check SMA vs **RP**-SMA on the pigtail against the antennas in stock.
-5. **Print the enclosure `coupon`** and offer it up to a real Pi 3B before
+5. **Swap C1 for a 10 V or 16 V part.** The 1000 µF in stock is rated 6.3 V;
+   on a 5 V rail that is ~26 % headroom, right at the usual 80 % derating
+   limit, and the Pi's 5 V rail does not sit low. The C1 footprint
+   (D8.0 mm, P3.50 mm) takes either.
+6. **Print the enclosure `coupon`** and offer it up to a real Pi 3B before
    committing to the ~4 h full base print.
 
 > **Never power the E22 without an antenna attached.** 1 W into an open
