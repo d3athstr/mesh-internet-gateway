@@ -1,0 +1,19 @@
+{
+  "board": {
+    "design_settings": {}
+  },
+  "libraries": {
+    "pinned_footprint_libs": [],
+    "pinned_symbol_libs": []
+  },
+  "meta": {
+    "filename": "meshgw-hat.kicad_pro",
+    "version": 3
+  },
+  "sheets": [
+    [
+      "6195772c-9c01-422b-84bd-20cfed8f6c79",
+      "Root"
+    ]
+  ]
+}

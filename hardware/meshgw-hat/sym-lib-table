@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "mgw")(type "KiCad")(uri "${KIPRJMOD}/mgw.kicad_sym")(options "")(descr "MeshGW symbols"))
+)

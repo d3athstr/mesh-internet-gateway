@@ -1,0 +1,52 @@
+# meshtasticd — Mesh Internet Gateway (meshgw)
+# Install to /etc/meshtasticd/config.yaml
+#
+# This file describes HARDWARE ONLY (which radio, on which pins). Region,
+# channels, MQTT and map reporting are *device* settings held in the node's
+# own config — see scripts/provision-meshgw.sh, which is the authority for
+# those and encodes the privacy boundary.
+#
+# Pin numbers are BCM GPIO, and follow the open-source MeshAdv-Pi-Hat
+# reference design for the Ebyte E22 on a Raspberry Pi:
+#   https://github.com/chrismyers2000/MeshAdv-Pi-Hat
+# The HAT in hardware/meshgw-hat/ wires the E22 to exactly these pins.
+#
+# UNVERIFIED against real hardware — nothing has been built yet.
+
+Lora:
+  Module: sx1262
+  # SPI0. Note CS is a plain GPIO (software chip-select), NOT CE0/GPIO8 —
+  # this matches the MeshAdv reference. If you rewire it, change it here AND
+  # in hardware/meshgw-hat/gen.py, which mirrors this map.
+  spidev: spidev0.0
+  CS: 21
+  IRQ: 16          # E22 DIO1
+  Busy: 20
+  Reset: 18
+  # E22-900M30S has a PA and an RF switch — TXen/RXen are REQUIRED. Omit them
+  # and the module transmits into a closed switch: no range, possible damage.
+  TXen: 13
+  RXen: 12
+  # The E22's SX1262 clocks from a TCXO fed off DIO3. Without this the radio
+  # either fails to start or drifts off frequency.
+  DIO3_TCXO_VOLTAGE: true
+
+  # 30 dBm (1 W) is the module's rated ceiling. Leave headroom rather than
+  # pinning the maximum until the supply rail is proven under TX burst —
+  # brownout during TX looks exactly like a bad antenna.
+  # Set the actual value as a device setting (lora.tx_power), not here.
+
+Logging:
+  LogLevel: info
+  # Journald picks this up; the ops Wazuh agent ships it (see docs/).
+
+Webserver:
+  # Local diagnostics only. Do NOT expose this off-box — meshtasticd's
+  # webserver is unauthenticated, the same reason the HA TCP-proxy was left
+  # off (see meshtastic-lora-ha-node memory).
+  Port: 9443
+  RootPath: /usr/share/meshtasticd/web
+
+General:
+  MaxNodes: 200
+  MaxMessageQueue: 100

@@ -1,0 +1,17 @@
+# Matches the techtaria-sentinel convention: renders and reports in out/ ARE
+# committed (they are how a reviewer sees the board without KiCad), but the
+# router's intermediate files are not.
+*-bak
+*.kicad_*-bak
+*.lck
+fp-info-cache
+_autosave-*
+*.pyc
+__pycache__/
+
+hardware/*/out/fr.log
+hardware/*/out/*.dsn
+hardware/*/out/*.ses
+
+# Rendered enclosure geometry — regenerate from the .scad
+enclosure/*.stl
