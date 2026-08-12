@@ -2,7 +2,7 @@
   (version 20240108)
   (generator "empire12-gen")
   (layer "F.Cu")
-  (descr "Ebyte E22-900M30S SX1262+PA 1W LoRa module, 38.5 x 24 x 3.6 mm, 22 castellated pads at 2.54 mm pitch. Geometry taken from the E22-900M30S User Manual v1.20 section 3 'Size and pin definition': body 24.0 +/-0.1 (X) x 38.5 +/-0.1 (Y), pad 0.80 x 1.50, pitch 2.54, first pad 2.61 from the top edge, 7.60 gap between pin 19 and pin 20, 5.46 between pin 21 and pin 22. NOT YET CHECKED AGAINST A PHYSICAL PART.")
+  (descr "Ebyte E22-900M30S SX1262+PA 1W LoRa module, 38.5 x 24 x 3.6 mm, 22 castellated pads at 2.54 mm pitch. Geometry taken from the E22-900M30S User Manual v1.20 section 3 'Size and pin definition': body 24.0 +/-0.1 (X) x 38.5 +/-0.1 (Y), pad 0.80 x 1.50, pitch 2.54, first pad 2.61 from the top edge, 7.60 gap between pin 19 and pin 20, 5.46 between pin 21 and pin 22. DELIBERATE DEVIATION: the land is 2.0 mm wide against the datasheet's 0.80 mm castellation, centred on the body edge so 1.0 mm sits outside the module for a solder fillet and 1.0 mm underneath it. That is correct practice for a castellated module and is NOT an error to 'fix' back to 0.80. Pad HEIGHT 1.50 is the datasheet figure unchanged. Internal consistency re-checked 2026-08-12 (pad count, first-pad offset, pitch, both irregular gaps, pin ring direction). STILL NOT CHECKED AGAINST A PHYSICAL PART - the module was ordered 2026-08-12 (AliExpress order 1773) and has not arrived.")
   (tags "lora sx1262 ebyte e22 rf module castellated")
   (attr through_hole)
 
