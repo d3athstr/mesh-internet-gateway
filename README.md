@@ -4,8 +4,16 @@ Wired-Ethernet Raspberry Pi + 1 W SX1262 LoRa gateway running **`meshtasticd`**.
 Bridges the Empire12 / Techtaria LoRa mesh to the internet over MQTT, and
 publishes **E12-owned nodes only** to the public Meshtastic map directories.
 
-PartsBin project **[18]**. Status: **planning / design**. Nothing ordered,
-nothing fabbed, nothing deployed.
+PartsBin project **[18]**. Status: **bare boards cleared to order 2026-08-12**;
+nothing fabbed or deployed yet. The E22 radio is on order (AliExpress 1773).
+
+**Projected cost ~$81.81**, of which **$35.00 is the Raspberry Pi itself** —
+check the shelf first, a spare 3B/3B+/4 makes that line $0. The next largest
+is the E22 at **$17.10**, which is what was actually paid on a single-item
+AliExpress order; LCSC lists the bare module at ~$7.19, so the difference is
+probably bundled shipping and worth checking before buying a second one. The
+custom HAT is ~$0.80 ($4 for 5 boards) and the printed enclosure ~$1.20 of
+filament — between them under 3 % of the build.
 
 ---
 
