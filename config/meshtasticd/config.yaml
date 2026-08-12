@@ -6,27 +6,31 @@
 # own config — see scripts/provision-meshgw.sh, which is the authority for
 # those and encodes the privacy boundary.
 #
-# Pin numbers are BCM GPIO, and follow the open-source MeshAdv-Pi-Hat
-# reference design for the Ebyte E22 on a Raspberry Pi:
-#   https://github.com/chrismyers2000/MeshAdv-Pi-Hat
-# The HAT in hardware/meshgw-hat/ wires the E22 to exactly these pins.
+# Pin numbers are BCM GPIO. The authority for this map is
+# hardware/meshgw-hat/netlist.py — it is what the copper actually does, and
+# this file only tells meshtasticd about it. If they disagree, the radio does
+# not come up. The starting point was the open-source MeshAdv-Pi-Hat reference
+# design (https://github.com/chrismyers2000/MeshAdv-Pi-Hat) but this HAT
+# DIVERGES from it: every control line was moved onto an odd-numbered header
+# pin (the Pi's inner row) because the reference map could not be routed on a
+# board this size, and because the resulting boot-time pull states are safer —
+# GPIO5 idles the chip DESELECTED, where the reference's GPIO21 asserted
+# chip-select on every boot. netlist.py has the full reasoning.
 #
 # UNVERIFIED against real hardware — nothing has been built yet.
 
 Lora:
   Module: sx1262
-  # SPI0. Note CS is a plain GPIO (software chip-select), NOT CE0/GPIO8 —
-  # this matches the MeshAdv reference. If you rewire it, change it here AND
-  # in hardware/meshgw-hat/gen.py, which mirrors this map.
+  # SPI0. Note CS is a plain GPIO (software chip-select), NOT CE0/GPIO8.
   spidev: spidev0.0
-  CS: 21
-  IRQ: 16          # E22 DIO1
-  Busy: 20
-  Reset: 18
+  CS: 5            # header pin 29
+  IRQ: 17          # header pin 11 — E22 DIO1
+  Busy: 27         # header pin 13
+  Reset: 22        # header pin 15
   # E22-900M30S has a PA and an RF switch — TXen/RXen are REQUIRED. Omit them
   # and the module transmits into a closed switch: no range, possible damage.
-  TXen: 13
-  RXen: 12
+  TXen: 13         # header pin 33
+  RXen: 6          # header pin 31
   # The E22's SX1262 clocks from a TCXO fed off DIO3. Without this the radio
   # either fails to start or drifts off frequency.
   DIO3_TCXO_VOLTAGE: true

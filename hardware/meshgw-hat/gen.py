@@ -41,6 +41,8 @@ STATUS: DRAFT. See the verification checklist in README.md before ordering.
 """
 import json, os, re, uuid
 
+from netlist import NETS, NC, pins   # one netlist, shared with gen_pcb.py
+
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 GRID = 1.27
 LIB = "mgw"
@@ -129,15 +131,15 @@ out.append(sym("E22_900M30S", "U", f"{LIB}:E22_900M30S", [
 _pi = [
     ("1",  "3V3",        "L",  25.4), ("2",  "5V",         "R",  25.4),
     ("6",  "GND",        "L",  22.86), ("4", "5V",         "R",  22.86),
-    ("9",  "GND",        "L",  20.32), ("12", "GPIO18",    "R",  20.32),
-    ("14", "GND",        "L",  17.78), ("19", "GPIO10_MOSI", "R", 17.78),
-    ("20", "GND",        "L",  15.24), ("21", "GPIO9_MISO", "R", 15.24),
-    ("25", "GND",        "L",  12.7), ("23", "GPIO11_SCLK", "R", 12.7),
-    ("30", "GND",        "L",  10.16), ("32", "GPIO12",    "R",  10.16),
-    ("34", "GND",        "L",   7.62), ("33", "GPIO13",    "R",   7.62),
-    ("39", "GND",        "L",   5.08), ("36", "GPIO16",    "R",   5.08),
-    ("17", "3V3",        "L",   2.54), ("38", "GPIO20",    "R",   2.54),
-    ("40", "GPIO21",     "R",   0.0),
+    ("9",  "GND",        "L",  20.32), ("11", "GPIO17",    "R",  20.32),
+    ("14", "GND",        "L",  17.78), ("13", "GPIO27",    "R",  17.78),
+    ("20", "GND",        "L",  15.24), ("15", "GPIO22",    "R",  15.24),
+    ("25", "GND",        "L",  12.7),  ("19", "GPIO10_MOSI", "R", 12.7),
+    ("30", "GND",        "L",  10.16), ("21", "GPIO9_MISO", "R",  10.16),
+    ("34", "GND",        "L",   7.62), ("23", "GPIO11_SCLK", "R",  7.62),
+    ("39", "GND",        "L",   5.08), ("29", "GPIO5",     "R",   5.08),
+    ("17", "3V3",        "L",   2.54), ("31", "GPIO6",     "R",   2.54),
+    ("33", "GPIO13",     "R",   0.0),
 ]
 out.append(sym("RPi_GPIO40", "J", "Connector_PinHeader_2.54mm:PinHeader_2x20_P2.54mm_Vertical",
                [(n, nm, "passive", s, y) for n, nm, s, y in _pi], 17.78,
@@ -194,26 +196,13 @@ def place(lib, ref, val, at, conns, nc=(), dnp=False):
 
 
 # ===================== Pi header J1 (left) ================================
-place("RPi_GPIO40", "J1", "RPi 40-pin GPIO", (63.5, 118.11), {
-    "2": "+5V", "4": "+5V",
-    "1": "+3V3", "17": "+3V3",
-    "6": "GND", "9": "GND", "14": "GND", "20": "GND", "25": "GND",
-    "30": "GND", "34": "GND", "39": "GND",
-    "19": "MOSI", "21": "MISO", "23": "SCK", "40": "NSS",
-    "12": "NRST", "36": "DIO1", "38": "BUSY", "33": "TXEN", "32": "RXEN",
-})
+place("RPi_GPIO40", "J1", "RPi 40-pin GPIO", (63.5, 118.11), pins("J1"))
 
 # ===================== E22 module U1 (right) ==============================
 # ANT (pad 21) intentionally no-connect: the antenna leaves via the module's
 # own IPEX connector and a pigtail. DIO2 unused (TXEN driven from GPIO13).
-place("E22_900M30S", "U1", "E22-900M30S", (152.4, 118.11), {
-    "9": "+5V", "10": "+5V",
-    "19": "NSS", "18": "SCK", "17": "MOSI", "16": "MISO",
-    "15": "NRST", "14": "BUSY", "13": "DIO1",
-    "7": "TXEN", "6": "RXEN",
-    "1": "GND", "2": "GND", "3": "GND", "4": "GND", "5": "GND",
-    "11": "GND", "12": "GND", "20": "GND", "22": "GND",
-}, nc=("8", "21"))
+place("E22_900M30S", "U1", "E22-900M30S", (152.4, 118.11), pins("U1"),
+      nc=NC["U1"])
 
 # ===================== Decoupling ========================================
 # C1 bulk: the 650 mA TX burst is a step load on a rail that arrives through
@@ -224,15 +213,24 @@ place("E22_900M30S", "U1", "E22-900M30S", (152.4, 118.11), {
 # rail is ~26 % headroom — right at the usual 80 % derating limit. BUY A 10 V
 # OR 16 V PART. The footprint (D8.0 mm, P3.50 mm) is unchanged either way, so
 # this is a purchasing decision, not a layout one.
-place("CP", "C1", "1000uF 6.3V", (109.22, 165.1), {"1": "+5V", "2": "GND"})
-place("C", "C2", "0.1uF", (129.54, 165.1), {"1": "+5V", "2": "GND"})
-place("C", "C3", "0.1uF", (147.32, 165.1), {"1": "+5V", "2": "GND"})
+# STACKED VERTICALLY, NOT IN A ROW, and that is load-bearing. place() draws a
+# 2.54 mm stub off every pin and hangs the net label on its end. Side by side
+# these three sat 5.08 mm pin-to-pin, so C1's right stub and C2's left stub met
+# at exactly one point and WELDED GND TO +5V: the schematic netlist came out
+# with no GND net at all and a 27-node "+5V" holding both plates of all three
+# caps. It cost one ERC error that reads as a trivial two-PWR_FLAG complaint.
+# Nothing on the PCB moved, because gen_pcb.py builds from netlist.py and never
+# reads this sheet - so a dead short on the power rail stayed invisible in
+# every board-side check. Keep adjacent pins > 5.08 mm apart, or stack.
+place("CP", "C1", "1000uF 6.3V", (109.22, 152.4), {"1": "+5V", "2": "GND"})
+place("C", "C2", "0.1uF", (109.22, 165.1), {"1": "+5V", "2": "GND"})
+place("C", "C3", "0.1uF", (109.22, 177.8), {"1": "+5V", "2": "GND"})
 
 # The Pi header is the only source on +5V/+3V3/GND and its pins are passive,
 # so ERC needs flags or it reports "no power source".
-place("PWR_FLAG", "#FLG_5", "PWR_FLAG", (109.22, 180.34), {"1": "+5V"})
-place("PWR_FLAG", "#FLG_G", "PWR_FLAG", (129.54, 180.34), {"1": "GND"})
-place("PWR_FLAG", "#FLG_3", "PWR_FLAG", (147.32, 180.34), {"1": "+3V3"})
+place("PWR_FLAG", "#FLG_5", "PWR_FLAG", (109.22, 193.04), {"1": "+5V"})
+place("PWR_FLAG", "#FLG_G", "PWR_FLAG", (129.54, 193.04), {"1": "GND"})
+place("PWR_FLAG", "#FLG_3", "PWR_FLAG", (147.32, 193.04), {"1": "+3V3"})
 
 TXT = []
 
@@ -243,44 +241,64 @@ def note(t, x, y, size=2.0):
                f' (uuid "{U()}"))')
 
 
-note("MeshGW Pi HAT - E22-900M30S carrier (rev A DRAFT, 2026-08-10)", 20, 15.24, 3.0)
+note("MeshGW Pi HAT - E22-900M30S carrier (rev A DRAFT, 2026-08-12)", 20, 15.24, 3.0)
 note("DO NOT ORDER: E22 land pattern is datasheet-derived and has NOT been", 20, 21.59, 2.0)
-note("checked against a physical part; HAT mechanical geometry unverified.", 20, 26.67, 2.0)
+note("checked against a physical part. That is now the ONLY board blocker -", 20, 26.67, 2.0)
+note("HAT mechanical geometry was verified vs the Pi 3B+ on 2026-08-12.", 20, 31.75, 2.0)
 
-NX, NY = 20.0, 200.0
-for i, line in enumerate([
-        "POWER: E22 VCC = +5V (Pi header pins 2/4), NOT 3V3.",
-        "  Datasheet: 2.5-5.5V range but '>=5.0V ensures output power',",
-        "  650 mA instantaneous on a TX burst. The Pi 3V3 regulator must",
-        "  not carry that. Logic level is 3.3V so SPI wires straight to",
-        "  the Pi with no level shifting.",
-        "",
-        "RF: pad 21 (ANT stamp hole) is NO-CONNECT by design. The antenna",
-        "  leaves through the module's own IPEX connector via an IPEX->SMA",
-        "  bulkhead pigtail. Nothing on this 2-layer board is impedance-",
-        "  controlled, and a bad RF trace passes every automated check.",
-        "",
-        "PIN MAP (BCM) - mirrors config/meshtasticd/config.yaml exactly:",
-        "  NSS  GPIO21 (hdr 40)   BUSY GPIO20 (hdr 38)",
-        "  SCK  GPIO11 (hdr 23)   DIO1 GPIO16 (hdr 36)",
-        "  MOSI GPIO10 (hdr 19)   NRST GPIO18 (hdr 12)",
-        "  MISO GPIO9  (hdr 21)   TXEN GPIO13 (hdr 33)",
-        "                         RXEN GPIO12 (hdr 32)",
-        "  Change one, change BOTH files.",
-        "",
-        "TXEN/RXEN are REQUIRED - the E22 has an RF switch. Leave them",
-        "  unconnected and the PA transmits into a closed switch.",
-        "",
-        "NEVER power the module without an antenna: 1W into an open",
-        "  circuit damages the PA.",
-]):
-    if line:
-        note(line, NX, NY + i * 5.6, 1.7)
+# TWO COLUMNS, and below the components. The sheet is A3 (297 mm tall) and a
+# single column of these notes ran off the bottom of the page — KiCad plots
+# text outside the frame quite happily and says nothing about it.
+NY, STEP = 203.0, 5.0
+COLUMNS = [(20.0, [
+    "POWER: E22 VCC = +5V (Pi header pins 2/4), NOT 3V3.",
+    "  Datasheet: 2.5-5.5V range but '>=5.0V ensures output power',",
+    "  650 mA instantaneous on a TX burst. The Pi 3V3 regulator must",
+    "  not carry that. Logic level is 3.3V so SPI wires straight to",
+    "  the Pi with no level shifting.",
+    "",
+    "RF: pad 21 (ANT stamp hole) is NO-CONNECT by design. The antenna",
+    "  leaves through the module's own IPEX connector via an IPEX->SMA",
+    "  bulkhead pigtail. Nothing on this 2-layer board is impedance-",
+    "  controlled, and a bad RF trace passes every automated check.",
+    "",
+    "TXEN/RXEN are REQUIRED - the E22 has an RF switch. Leave them",
+    "  unconnected and the PA transmits into a closed switch.",
+    "",
+    "NEVER power the module without an antenna: 1W into an open",
+    "  circuit damages the PA.",
+]), (200.0, [
+    "PIN MAP (BCM) - generated from netlist.py, the ONE source:",
+    "  NSS  GPIO5  (hdr 29)   BUSY GPIO27 (hdr 13)",
+    "  SCK  GPIO11 (hdr 23)   DIO1 GPIO17 (hdr 11)",
+    "  MOSI GPIO10 (hdr 19)   NRST GPIO22 (hdr 15)",
+    "  MISO GPIO9  (hdr 21)   TXEN GPIO13 (hdr 33)",
+    "                         RXEN GPIO6  (hdr 31)",
+    "  This sheet and the PCB are both generated from it, so they",
+    "  cannot drift. config/meshtasticd/config.yaml is NOT generated -",
+    "  re-pin here and you must hand-edit it or the radio won't start.",
+    "  Diverges from MeshAdv-Pi-Hat deliberately; netlist.py says why.",
+    "",
+    "GEOMETRY: 65 x 56.0 mm, R3 corners, notched for the Pi 3B+ PoE",
+    "  header J14 (those pins can carry ~48-57V on a PoE switch).",
+    "  Verified vs the official HAT spec 2026-08-12; check_geometry.py",
+    "  asserts 27 of those facts against the ROUTED board every run.",
+])]
+# 284, not A3's 297: the usable area ends at the drawing FRAME's inner edge,
+# and KiCad plots text past it without complaint. Assert against what a reader
+# can actually see.
+FRAME_BOTTOM = 284.0
+for nx, lines in COLUMNS:
+    assert NY + len(lines) * STEP < FRAME_BOTTOM, \
+        f"notes column at x={nx} runs past the A3 frame"
+    for i, line in enumerate(lines):
+        if line:
+            note(line, nx, NY + i * STEP, 1.7)
 
 sch = f'''(kicad_sch (version 20250114) (generator "empire12-gen") (generator_version "9.0")
   (uuid "{ROOT}")
   (paper "A3")
-  (title_block (title "MeshGW Pi HAT - E22-900M30S carrier") (date "2026-08-10")
+  (title_block (title "MeshGW Pi HAT - E22-900M30S carrier") (date "2026-08-12")
     (rev "A") (company "Empire12"))
   (lib_symbols)
 {chr(10).join(items)}

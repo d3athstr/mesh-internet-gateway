@@ -80,11 +80,51 @@ reason to relax the first.
 
 ```
 config/meshtasticd/    config.yaml (E22 pinout), MQTT + channel policy, systemd
-hardware/meshgw-hat/   KiCad: gen.py, gen_pcb.py, route.sh, lib.pretty/
+hardware/meshgw-hat/   KiCad: netlist.py, gen.py, gen_pcb.py, route.sh,
+                       check_geometry.py, lib.pretty/
 enclosure/             OpenSCAD parametric case + build notes
 docs/                  design notes, privacy boundary, provisioning runbook
 scripts/               provisioning helpers
 ```
+
+`netlist.py` is the **single source of truth for the pinout** — the schematic
+generator, the board generator and (by hand) `config/meshtasticd/config.yaml`
+all derive from it. It used to be duplicated in `gen.py` and `gen_pcb.py` with
+a comment saying the two must mirror each other; on 2026-08-11 they silently
+stopped mirroring each other. Change the map in one place.
+
+## The HAT is mechanically verified, the footprints are not
+
+These are two different claims and only the first one is true.
+
+`check_geometry.py` asserts 27 facts about the **routed** board against the
+Raspberry Pi HAT mechanical specification and the Pi 3B+: outline 65 x 56 mm
+with R3 corners, all 40 header pads on the spec grid from pin 1 at
+(8.37, 4.77), four 2.75 mm mounting holes with 6.2 mm isolated lands, no
+copper over the Pi 3B+ PoE header, the ground pour actually filled, and the
+`+5V` width. It exists because on this toolchain **a board can pass DRC with
+0 violations and 0 unconnected and still be scrap** — the previous revision
+of this board did exactly that with its two header rows swapped, which would
+have put every SPI signal on its neighbour's pin.
+
+Run it on anything you are about to fab. `route.sh` runs it automatically.
+
+Two deliberate deviations from the spec: there are no camera/display flex
+cutouts, and there is no ID EEPROM. Without the EEPROM this is a board in the
+HAT *form factor*, not a certified HAT, and the Pi will not auto-configure it
+— which is fine here, because `meshtasticd` is told the pinout explicitly.
+
+### Pi 3B+ PoE header
+
+The 3B+ adds a 4-pin PoE header (J14) that the 3B does not have, and it stands
+tall enough to foul a HAT. The board has an **edge-open notch** rather than an
+enclosed cutout, because J14 leaves only ~1 mm to the board edge and an
+enclosed cutout would leave a 1 mm FR4 bridge that would snap.
+
+Fit is the smaller reason. J14 sits on the Ethernet magnetics' centre taps, so
+on a PoE-capable switch those pins can carry ~48-57 V — and this is by
+definition a wired-Ethernet gateway, so it is exactly the machine likely to be
+plugged into such a switch. Copper over J14 is checked for, not assumed.
 
 ## Build state
 
@@ -93,7 +133,7 @@ scripts/               provisioning helpers
 | PartsBin project [18] + BOM | **done** — 11 lines |
 | meshtasticd config | **drafted**, untested against real hardware |
 | Device provisioning script | **drafted**, never run against a radio. Admin key comes from Vault (`secret/empire12/meshtastic/admin-key`), not from this repo |
-| HAT PCB | **DRAFT — DO NOT ORDER.** Routes and passes DRC clean (132 segments, 5 vias, 0 violations, 0 unconnected), but the E22 land pattern is datasheet-derived and has never met a physical module |
+| HAT PCB | **DRAFT — DO NOT ORDER.** Mechanically verified against the HAT spec and the Pi 3B+ 2026-08-12 (see below); routes and passes DRC clean (119 segments, 0 vias, 0 violations, 0 unconnected) and passes 27 mechanical assertions in `check_geometry.py`. Still blocked: the E22 land pattern is datasheet-derived and has never met a physical module |
 | Enclosure | **DRAFT** — all three parts render solid, dimensions not validated against a real Pi + HAT stack. Print `coupon` first |
 | Deployment | not started |
 
@@ -105,8 +145,13 @@ scripts/               provisioning helpers
    PCB failure modes pass every automated check — bad land pattern, unfilled
    zones (`IsFilled()` lies), and reversed diodes (pad 1 = cathode).
 2. **Hand-check power-trace width.** KiCad DRC has no current check. The E22
-   pulls ~650 mA peak on a 30 dBm TX burst; `route.sh` asks for 1.0 mm on
-   `+5V` on that basis.
+   pulls ~650 mA peak on a 30 dBm TX burst; `route.sh` asks for 0.4 mm on
+   `+5V`, which IPC-2221 puts at ~1.24 A on 1 oz external copper for a 10 °C
+   rise — about 1.9x the peak. It is not wider because it cannot be: every
+   `+5V` run has to thread the 1.04 mm gaps between the header's pads, and at
+   0.5 mm and 1.0 mm freerouting could not finish the board at all. If you
+   want more margin, the honest fix is a second `+5V` path on B.Cu, not a
+   bigger number in `route.sh`.
 3. **Confirm the Pi's 5V rail holds through a TX burst.** The E22 runs from
    **5 V, not 3V3** — the datasheet is explicit that ">=5.0 V ensures output
    power", and its SPI/control pins are 3.3 V logic so they land on the Pi's
