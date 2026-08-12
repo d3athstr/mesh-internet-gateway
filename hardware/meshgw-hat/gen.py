@@ -37,7 +37,9 @@ config and the MeshAdv-Pi-Hat reference) rather than tying TXEN to DIO2. The
 datasheet allows the DIO2 shortcut; explicit control is what meshtasticd's
 config expects, and it keeps the failure mode diagnosable.
 
-STATUS: DRAFT. See the verification checklist in README.md before ordering.
+STATUS: rev A, bare boards ordered 2026-08-12 with U1's land pattern still
+unverified against a physical module — a deliberate, recorded decision, see
+fab_gate.py. CHECK U1's FIT BEFORE SOLDERING IT DOWN.
 """
 import json, os, re, uuid
 
@@ -241,10 +243,10 @@ def note(t, x, y, size=2.0):
                f' (uuid "{U()}"))')
 
 
-note("MeshGW Pi HAT - E22-900M30S carrier (rev A DRAFT, 2026-08-12)", 20, 15.24, 3.0)
-note("DO NOT ORDER: E22 land pattern is datasheet-derived and has NOT been", 20, 21.59, 2.0)
-note("checked against a physical part. That is now the ONLY board blocker -", 20, 26.67, 2.0)
-note("HAT mechanical geometry was verified vs the Pi 3B+ on 2026-08-12.", 20, 31.75, 2.0)
+note("MeshGW Pi HAT - E22-900M30S carrier (rev A, 2026-08-12)", 20, 15.24, 3.0)
+note("HAT mechanical geometry VERIFIED vs the Pi 3B+ 2026-08-12; U1's land", 20, 21.59, 2.0)
+note("pattern is datasheet-derived and has NOT met a physical module. Bare", 20, 26.67, 2.0)
+note("boards ordered anyway on that known risk - CHECK U1 FIT BEFORE SOLDERING.", 20, 31.75, 2.0)
 
 # TWO COLUMNS, and below the components. The sheet is A3 (297 mm tall) and a
 # single column of these notes ran off the bottom of the page — KiCad plots

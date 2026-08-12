@@ -292,8 +292,14 @@ for ref, (path, value, lx, ly, rot) in PLACE.items():
 # Loud silkscreen. The Warden carrier precedent: a draft board says so on the
 # copper, because a bare PCB on a bench outlives the note that explained it.
 for txt, tx, ty, sz in [
-        ("MeshGW HAT rev A - DRAFT", 32.5, 53.6, 1.4),
-        ("DO NOT ORDER - E22 land pattern unverified", 32.5, 55.1, 0.9),
+        # The board is now DELIBERATELY fabbed with U1's land pattern still
+        # unverified (Don, 2026-08-12 — see fab_gate.py). So the silk stops
+        # saying DO NOT ORDER, which would be false on a board that was
+        # ordered on purpose, and instead warns the person holding it at the
+        # moment the warning still helps: before the module is soldered down.
+        # Checking a land pattern is free before the iron and impossible after.
+        ("MeshGW HAT rev A", 32.5, 53.6, 1.4),
+        ("U1 LAND UNVERIFIED - CHECK FIT BEFORE SOLDERING", 32.5, 55.1, 0.9),
         ("E22 VCC = 5V", 52.0, 30.0, 1.0),
         # Names the notch so nobody "tidies it up" on a later spin.
         ("PoE J14", 53.5, 9.75, 1.0)]:

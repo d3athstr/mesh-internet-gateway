@@ -133,17 +133,47 @@ plugged into such a switch. Copper over J14 is checked for, not assumed.
 | PartsBin project [18] + BOM | **done** — 11 lines |
 | meshtasticd config | **drafted**, untested against real hardware |
 | Device provisioning script | **drafted**, never run against a radio. Admin key comes from Vault (`secret/empire12/meshtastic/admin-key`), not from this repo |
-| HAT PCB | **DRAFT — DO NOT ORDER.** Mechanically verified against the HAT spec and the Pi 3B+ 2026-08-12 (see below); routes and passes DRC clean (119 segments, 0 vias, 0 violations, 0 unconnected) and passes 27 mechanical assertions in `check_geometry.py`. Still blocked: the E22 land pattern is datasheet-derived and has never met a physical module |
+| HAT PCB | **rev A, gerbers built, cleared to order 2026-08-12.** Mechanically verified against the HAT spec and the Pi 3B+ (see below); 119 segments, 0 vias, DRC 0/0, ERC 0, 27/27 mechanical assertions, schematic netlist matches `netlist.py`. Fab package `out/fab/meshgw-hat-revA-gerbers.zip`. **Exported on a recorded override — U1's land pattern still has not met a physical module. CHECK U1'S FIT BEFORE SOLDERING.** See `fab_gate.py` |
 | Enclosure | **DRAFT** — all three parts render solid, dimensions not validated against a real Pi + HAT stack. Print `coupon` first |
 | Deployment | not started |
 
-### Before anything is ordered
+### Bare boards were ordered with U1's land pattern unverified — on purpose
 
-1. **Verify the E22-900M30S land pattern against the Ebyte datasheet.** The
-   footprint in `lib.pretty/` was written from the module's published
-   dimensions and has **not** been checked against a physical part. Three
-   PCB failure modes pass every automated check — bad land pattern, unfilled
-   zones (`IsFilled()` lies), and reversed diodes (pad 1 = cathode).
+Don's call, 2026-08-12, recorded in `fab_gate.py` rather than laundered into a
+flag that claims the unknown was resolved. `GEOMETRY_VERIFIED` is still
+`False`; a separate `GEOMETRY_OVERRIDE` string permits the export and says who
+decided, when, and why. Six weeks from now "verified" and "we decided to risk
+it" are very different things to read.
+
+The reasoning: boards are ~$2 and JLCPCB shipping is $6–25, so batching this
+into the same checkout as OSL, FD2, pool and Sentinel costs ~$2 marginal.
+Holding it back would pay that shipping charge again later *with certainty*.
+If the land pattern is wrong the loss is ~$2 of board plus one respin's
+shipping — cheaper in expectation than waiting, unless no further order is
+ever placed.
+
+**This is a real risk, not a formality.** The E22 solders to castellated pads,
+so a wrong land pattern makes these boards scrap. That is unlike the Sentinel
+carrier, where the open items were modules on headers and a wrong guess costs
+a module rather than a respin.
+
+**When the module arrives, before any soldering:** offer it up to the bare
+board. Check the 2.54 mm pitch, both irregular gaps (7.60 mm pin 19→20,
+5.46 mm pin 21→22), and that the castellations land on the 1 mm of pad left
+outside the module body. Then set `GEOMETRY_VERIFIED = True` and clear
+`GEOMETRY_OVERRIDE`. The board silkscreens the same warning, because that is
+the object you will be holding at that moment.
+
+### Still to check before the parts go on
+
+1. **The E22-900M30S land pattern, against the physical module** (above). The
+   footprint is internally self-consistent with its cited datasheet figures —
+   pad count, first-pad offset, pitch, both irregular gaps and the pin ring
+   direction were re-checked 2026-08-12 — but that only proves it was
+   transcribed correctly, not that the source figures are right. Note the
+   deliberate deviation: the land is 2.0 mm wide against a 0.80 mm
+   castellation, centred on the body edge so 1 mm sits outside for a solder
+   fillet. That is correct practice; do not "fix" it back to 0.80.
 2. **Hand-check power-trace width.** KiCad DRC has no current check. The E22
    pulls ~650 mA peak on a 30 dBm TX burst; `route.sh` asks for 0.4 mm on
    `+5V`, which IPC-2221 puts at ~1.24 A on 1 oz external copper for a 10 °C

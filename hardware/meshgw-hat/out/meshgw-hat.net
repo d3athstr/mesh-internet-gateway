@@ -1,7 +1,7 @@
 (export (version "E")
   (design
     (source "/root/mesh-internet-gateway/hardware/meshgw-hat/meshgw-hat.kicad_sch")
-    (date "2026-08-12T08:56:17-0400")
+    (date "2026-08-12T09:03:59-0400")
     (tool "Eeschema 9.0.8+1")
     (sheet (number "1") (name "/") (tstamps "/")
       (title_block
@@ -30,7 +30,7 @@
       (property (name "Sheetname") (value ""))
       (property (name "Sheetfile") (value "meshgw-hat.kicad_sch"))
       (sheetpath (names "/") (tstamps "/"))
-      (tstamps "96fed2f0-ddb4-4a7b-a2f1-303ff8bcfbfb"))
+      (tstamps "56803dbd-e934-40a8-8292-459cebc22905"))
     (comp (ref "C2")
       (value "0.1uF")
       (fields
@@ -41,7 +41,7 @@
       (property (name "Sheetname") (value ""))
       (property (name "Sheetfile") (value "meshgw-hat.kicad_sch"))
       (sheetpath (names "/") (tstamps "/"))
-      (tstamps "7e09d1e6-f66c-4cf5-92ab-67f81ea8e858"))
+      (tstamps "640da6c8-d1d5-40a9-aa38-83c07490f636"))
     (comp (ref "C3")
       (value "0.1uF")
       (fields
@@ -52,7 +52,7 @@
       (property (name "Sheetname") (value ""))
       (property (name "Sheetfile") (value "meshgw-hat.kicad_sch"))
       (sheetpath (names "/") (tstamps "/"))
-      (tstamps "6e47e0b5-1855-4f7d-8987-2b74c8721717"))
+      (tstamps "2e207e80-050d-4c68-a495-ada87ab64af2"))
     (comp (ref "J1")
       (value "RPi 40-pin GPIO")
       (fields
@@ -63,7 +63,7 @@
       (property (name "Sheetname") (value ""))
       (property (name "Sheetfile") (value "meshgw-hat.kicad_sch"))
       (sheetpath (names "/") (tstamps "/"))
-      (tstamps "ab8d413c-3ae0-447f-b9ab-930d49f57627"))
+      (tstamps "4c0be0d6-8fdd-4b7d-a53e-6bdf5e5e9547"))
     (comp (ref "U1")
       (value "E22-900M30S")
       (fields
@@ -74,7 +74,7 @@
       (property (name "Sheetname") (value ""))
       (property (name "Sheetfile") (value "meshgw-hat.kicad_sch"))
       (sheetpath (names "/") (tstamps "/"))
-      (tstamps "604bc3a6-93c7-4d48-bc69-606099db277b")))
+      (tstamps "64c8ee02-e0f9-4650-8547-d1163763d714")))
   (libparts
     (libpart (lib "mgw") (part "C")
       (description "Ceramic disc capacitor")
