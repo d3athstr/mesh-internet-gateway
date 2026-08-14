@@ -2,7 +2,7 @@
 # Provision meshgw's Meshtastic device settings: region, MQTT uplink, map
 # reporting, and the channel uplink/downlink policy.
 #
-#   ./provision-meshgw.sh [--host ***REMOVED-HOST***] [--dry-run]
+#   ./provision-meshgw.sh [--host meshgw.local] [--dry-run]
 #
 # This script is the AUTHORITY for the privacy boundary in
 # docs/privacy-boundary.md. If you change what gets published, change it here.
@@ -16,7 +16,7 @@
 # after, is slower and is the only way that has proven reliable.
 set -euo pipefail
 
-HOST="${MESHGW_HOST:-***REMOVED-HOST***}"
+HOST="${MESHGW_HOST:-meshgw.local}"
 DRY=0
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -33,7 +33,7 @@ MT=(meshtastic --host "$HOST")
 # It is the PUBLIC half of the x25519 pair (the device only ever needs that),
 # but it is still a fleet identifier and does not belong in git.
 vault_admin_key() {
-    export VAULT_ADDR="${VAULT_ADDR:-https://***REMOVED-VAULT-ADDR***}"
+    export VAULT_ADDR="${VAULT_ADDR:?set VAULT_ADDR to your Vault endpoint}"
     export VAULT_CACERT="${VAULT_CACERT:-/etc/ssl/certs/vault-ca.crt}"
     if [[ -z "${VAULT_TOKEN:-}" ]]; then
         VAULT_TOKEN=$(vault write -field=token auth/approle/login \

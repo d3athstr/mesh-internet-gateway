@@ -20,7 +20,7 @@ filament — between them under 3 % of the build.
 ## Why this exists
 
 Today the mesh's only internet-adjacent node is the Heltec V4 gateway
-`!f66ae684` (`***REMOVED-HOST***`, ***REMOVED-IP***). It is a poor
+`!f66ae684`, a WiFi-attached node on the IoT VLAN. It is a poor
 foundation for an internet bridge:
 
 | Problem | Evidence |
