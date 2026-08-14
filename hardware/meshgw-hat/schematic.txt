@@ -1,0 +1,44 @@
+# MeshGW Pi HAT - E22-900M30S carrier - text schematic
+# rev A
+# source: meshgw-hat.kicad_sch
+# generated 2026-08-14 by kicad_text_schematic.py - DO NOT HAND-EDIT ABOVE THE HAND NOTES MARKER
+# regenerate: kicad_text_schematic.py /root/mesh-internet-gateway/hardware/meshgw-hat/meshgw-hat.kicad_sch
+#
+# Refdes below match the drafted schematic and the PCB exactly.
+
+PARTS (5)
+  C1     1000uF 6.3V                  
+  C2     0.1uF                        
+  C3     0.1uF                        
+  J1     RPi 40-pin GPIO              
+  U1     E22-900M30S                  
+
+NETS (12)
+  NET /GND
+      C1.2(-) C2.2(2) C3.2(2) J1.14(GND) J1.20(GND) J1.25(GND)
+      J1.30(GND) J1.34(GND) J1.39(GND) J1.6(GND) J1.9(GND) U1.1(GND)
+      U1.11(GND) U1.12(GND) U1.2(GND) U1.20(GND) U1.22(GND) U1.3(GND)
+      U1.4(GND) U1.5(GND)
+  NET /+3V3          J1.1(3V3) J1.17(3V3)
+  NET /+5V           C1.1(+) C2.1(1) C3.1(1) J1.2(5V) J1.4(5V) U1.10(VCC) U1.9(VCC)
+  NET /BUSY          J1.13(GPIO27) U1.14(BUSY)
+  NET /DIO1          J1.11(GPIO17) U1.13(DIO1)
+  NET /MISO          J1.21(GPIO9_MISO) U1.16(MISO)
+  NET /MOSI          J1.19(GPIO10_MOSI) U1.17(MOSI)
+  NET /NRST          J1.15(GPIO22) U1.15(NRST)
+  NET /NSS           J1.29(GPIO5) U1.19(NSS)
+  NET /RXEN          J1.31(GPIO6) U1.6(RXEN)
+  NET /SCK           J1.23(GPIO11_SCLK) U1.18(SCK)
+  NET /TXEN          J1.33(GPIO13) U1.7(TXEN)
+
+UNCONNECTED PINS (2) - free for future use
+  U1.21(ANT) U1.8(DIO2)
+
+POLARITY / ORIENTATION - the class of error that passes DRC
+  C1     check polarity if electrolytic/tantalum
+  C2     check polarity if electrolytic/tantalum
+  C3     check polarity if electrolytic/tantalum
+
+# ---- HAND NOTES (preserved on regeneration) ----
+# ASCII power-path diagram, divider ratios, anything the netlist
+# reads poorly. This section survives regeneration.
