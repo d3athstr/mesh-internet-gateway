@@ -32,7 +32,7 @@ MT=(meshtastic --host "$HOST")
 # credentials in Vault only, and this repo is a candidate for going public.
 # It is the PUBLIC half of the x25519 pair (the device only ever needs that),
 # but it is still a fleet identifier and does not belong in git.
-vault_admin_key() {
+vault_login() {
     export VAULT_ADDR="${VAULT_ADDR:?set VAULT_ADDR to your Vault endpoint}"
     export VAULT_CACERT="${VAULT_CACERT:-/etc/ssl/certs/vault-ca.crt}"
     if [[ -z "${VAULT_TOKEN:-}" ]]; then
@@ -41,7 +41,19 @@ vault_admin_key() {
             secret_id=$(jq -r .secret_id /etc/vault.d/approle.json))
         export VAULT_TOKEN
     fi
+}
+
+vault_admin_key() {
+    vault_login
     vault kv get -field=public secret/empire12/meshtastic/admin-key
+}
+
+# The site coordinates come from Vault for the same reason the admin key does:
+# THIS REPO IS PUBLIC. A fixed_position at sub-metre precision is a home
+# address. secret/empire12/meshgw/site holds lat / lon / alt.
+vault_site() {
+    vault_login
+    vault kv get -field="$1" secret/empire12/meshgw/site
 }
 
 set_one() {
@@ -74,12 +86,19 @@ set_one lora.tx_power 22
 
 # ---------------------------------------------------------------- position
 # meshgw is at the Empire12 home site (same coords as the HA V3 / RAK router).
+# The coordinates themselves live in Vault at secret/empire12/meshgw/site --
+# they are a home address and this repo is public.
 # Writing coordinates REBOOTS the radio. Setting fixed_position WITHOUT
 # writing coords broadcasts nothing — that bug has bitten this fleet before.
 echo "-- position --"
 if [[ $DRY -eq 0 ]]; then
+    SITE_LAT=$(vault_site lat)
+    SITE_LON=$(vault_site lon)
+    SITE_ALT=$(vault_site alt)
+    [[ -z "$SITE_LAT" || -z "$SITE_LON" ]] && {
+        echo "no coordinates at secret/empire12/meshgw/site" >&2; exit 4; }
     meshtastic --host "$HOST" \
-        --setlat ***REMOVED-SITE-LAT*** --setlon -***REMOVED-SITE-LON*** --setalt 514
+        --setlat "$SITE_LAT" --setlon "$SITE_LON" --setalt "${SITE_ALT:-0}"
     sleep 10
 fi
 set_one position.fixed_position true
