@@ -116,6 +116,22 @@ ch_set() {
 echo "== meshgw provisioning -> $HOST =="
 [[ $DRY -eq 1 ]] && echo "   (dry run — nothing will be written)"
 
+# ---------------------------------------------------------------- identity
+# THIS NAME IS PUBLIC. The node uplinks channel 0 to mqtt.meshtastic.org and is
+# published to the map directories, so whatever is set here is what the world
+# sees. "Techtaria-MQTT" chosen by Don 2026-09-09. The short name is the
+# 4-char field the rest of the fleet uses (SOLR, LR01, TN01).
+#
+# Set here because the firmware default is "Meshtastic <hex>" -- if this script
+# does not assert the name, a reprovision silently publishes an anonymous node.
+echo "-- identity --"
+if [[ $DRY -eq 1 ]]; then
+    echo "  set-owner = Techtaria-MQTT / MQTT"
+else
+    _write_retry "set-owner"       "${MT[@]}" --set-owner "Techtaria-MQTT"
+    _write_retry "set-owner-short" "${MT[@]}" --set-owner-short "MQTT"
+fi
+
 # ---------------------------------------------------------------- radio
 # Region and role are set SOLO and FIRST — see the note above.
 echo "-- radio --"
