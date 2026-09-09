@@ -56,18 +56,61 @@ vault_site() {
     vault kv get -field="$1" secret/empire12/meshgw/site
 }
 
+# Poll the device API until it answers again (used after any write that
+# reboots the radio). Returns non-zero if it never comes back.
+wait_for_api() {
+    local port="${MESHGW_API_PORT:-4403}" i
+    for i in $(seq 1 60); do
+        if (exec 3<>"/dev/tcp/${HOST}/${port}") 2>/dev/null; then
+            exec 3<&- 2>/dev/null || true
+            sleep 5           # let it finish coming up, not just bind
+            return 0
+        fi
+        sleep 5
+    done
+    echo "device API did not come back on ${HOST}:${port}" >&2
+    return 1
+}
+
+# A plain `sleep 3` between writes is NOT enough, and that is not a tuning
+# problem -- several settings REBOOT the radio (confirmed for lora.region and
+# for writing coordinates; assume any of them can). The API socket then
+# disappears for far longer than 3s, so the NEXT write dies with
+# "Timed out waiting for connection completion" or a BrokenPipeError, and under
+# `set -e` that killed the entire run. Three consecutive runs on 2026-09-09
+# aborted this way, each at a different setting, which is exactly what a
+# reboot-race looks like.
+#
+# So: retry each write, and wait for the API to genuinely answer afterwards.
+# Re-writing a value that already landed is harmless -- every one of these is
+# idempotent -- whereas a half-applied privacy boundary is not.
+_write_retry() {
+    local label="$1"; shift
+    local i out
+    for i in 1 2 3 4 5; do
+        if out=$("$@" 2>&1); then
+            wait_for_api || true
+            return 0
+        fi
+        echo "    $label: attempt $i failed, waiting for radio to come back" >&2
+        wait_for_api || true
+        sleep 5
+    done
+    echo "FAILED: $label did not apply after 5 attempts" >&2
+    echo "$out" | tail -2 >&2
+    return 1
+}
+
 set_one() {
     echo "  set $1 = $2"
     [[ $DRY -eq 1 ]] && return 0
-    "${MT[@]}" --set "$1" "$2"
-    sleep 3          # let the device settle + commit before the next write
+    _write_retry "set $1" "${MT[@]}" --set "$1" "$2"
 }
 
 ch_set() {
     echo "  ch$1 $2 = $3"
     [[ $DRY -eq 1 ]] && return 0
-    "${MT[@]}" --ch-index "$1" --ch-set "$2" "$3"
-    sleep 3
+    _write_retry "ch$1 $2" "${MT[@]}" --ch-index "$1" --ch-set "$2" "$3"
 }
 
 echo "== meshgw provisioning -> $HOST =="
@@ -99,7 +142,11 @@ if [[ $DRY -eq 0 ]]; then
         echo "no coordinates at secret/empire12/meshgw/site" >&2; exit 4; }
     meshtastic --host "$HOST" \
         --setlat "$SITE_LAT" --setlon "$SITE_LON" --setalt "${SITE_ALT:-0}"
-    sleep 10
+    # Writing coordinates REBOOTS the radio. A fixed `sleep 10` is not enough --
+    # the API socket comes back well after that, so the next --set died with
+    # "Connection timed out" and took the whole run with it (2026-09-09, three
+    # attempts in a row). Wait for the port to actually answer instead.
+    wait_for_api
 fi
 set_one position.fixed_position true
 set_one position.gps_mode DISABLED
@@ -114,7 +161,21 @@ set_one mqtt.root msh/US
 set_one mqtt.encryption_enabled true   # ship ciphertext, not plaintext, for
                                        # anything that is not a map report
 set_one mqtt.json_enabled false        # JSON publishes DECRYPTED payloads
-set_one mqtt.tls_enabled true
+# TLS IS NOT SUPPORTED BY meshtasticd (native/portduino) and this is not a
+# soft failure: the firmware rejects the ENTIRE MQTT config while it is set --
+#   ERROR [Router] Invalid MQTT config: tls_enabled is not supported on this node
+# -- so mqtt.enabled silently reverts to false and the gateway never connects,
+# while the CLI cheerfully reports every write as successful. Verified on
+# fw 2.7.26, 2026-09-09. `tls_enabled true` is correct for ESP32 nodes; it is
+# wrong here.
+#
+# The transport to mqtt.meshtastic.org:1883 is therefore PLAINTEXT. Accepted by
+# Don 2026-09-09. What that does and does not expose:
+#   - channel payloads stay Meshtastic-encrypted (mqtt.encryption_enabled true)
+#   - the broker credentials are Meshtastic's documented public ones
+#   - map reports are public by design
+#   - what leaks is metadata: that this node connects, and its node ID
+set_one mqtt.tls_enabled false
 # proxy_to_client routes MQTT via a connected client instead of the device's
 # own stack. It is how a supposedly-offline node ends up publishing. Off.
 set_one mqtt.proxy_to_client_enabled false
@@ -130,13 +191,24 @@ set_one mqtt.map_report_settings.publish_interval_secs 900
 # reason to publish a sharper position than the directories need.
 set_one mqtt.map_report_settings.position_precision 13
 # fw 2.5+ gate — without this the position is withheld from MQTT entirely.
-set_one position.ok_to_mqtt true
+# The field is on the LoRa config, NOT position: `PositionConfig` has no
+# `ok_to_mqtt` member (verified against fw 2.7.26 protobufs 2026-09-09).
+# `--set position.ok_to_mqtt` therefore fails, and under `set -e` it aborts
+# the run before the channel policy and hardening blocks ever execute.
+set_one lora.config_ok_to_mqtt true
 
 # ---------------------------------------------------------------- channels
 # THE PRIVACY BOUNDARY. See docs/privacy-boundary.md.
 #   idx 0 primary   — uplink ON, downlink off   (the only public channel)
 #   idx 1 paw-cmd   — uplink OFF, downlink OFF  (C&C: downlink = injection path)
 #   idx 2 Techtaria — uplink OFF, downlink OFF  (customer community chat)
+#   idx 3 sentinel  — uplink OFF, downlink OFF  (Techtaria Sentinel RF counter-surv)
+#
+# Every secondary channel must be listed here. A channel this script does not
+# name is a channel whose uplink state nothing re-asserts: it defaults to off
+# when created, then drifts silently and no run of this script will correct it.
+# sentinel was exactly that gap until 2026-09-09 — it existed on the V4 and the
+# HA V3 while this script only knew about 0-2.
 echo "-- channel uplink/downlink policy --"
 ch_set 0 uplink_enabled true
 ch_set 0 downlink_enabled false
@@ -144,6 +216,8 @@ ch_set 1 uplink_enabled false
 ch_set 1 downlink_enabled false
 ch_set 2 uplink_enabled false
 ch_set 2 downlink_enabled false
+ch_set 3 uplink_enabled false
+ch_set 3 downlink_enabled false
 
 # ---------------------------------------------------------------- hardening
 # House standard D050.
@@ -173,9 +247,19 @@ cat <<'EOF'
 
 CHECK, in this order:
   1. mqtt.enabled true AND map_reporting_enabled true
-  2. channel 1 (paw-cmd) and channel 2 (Techtaria) BOTH show
+  2. channels 1 (paw-cmd), 2 (Techtaria) and 3 (sentinel) ALL show
      uplink_enabled=false AND downlink_enabled=false.
-     If either is true, STOP and fix before the node stays up.
+     If any is true, STOP and fix before the node stays up.
+  2b. VERIFY EACH SECONDARY PSK BY HASH against its source of truth --
+     sha256 of the DECODED BYTES, never by the channel merely being present
+     with the right name. `--ch-add` seeds a RANDOM key, so an interrupted
+     provisioning leaves a correctly-named channel that cannot decrypt a
+     thing. The HA V3 ran two months that way. Sources:
+       paw-cmd   Vault secret/empire12/pawmations/meshtastic/channel-psk
+       sentinel  Vault secret/empire12/pawmations/meshtastic/sentinel-channel-psk
+       Techtaria Vault secret/empire12/pawmations/meshtastic/techtaria-channel-psk
+                 (mirror of AWS SM pawmations/meshtastic/community-channel)
+     All three are stored WITHOUT the `base64:` prefix; the CLI requires it.
   3. Node position appears in the node DB (check --info, NOT --get position,
      which only shows the fixed_position FLAG).
   4. Within ~15-30 min the node should appear on https://meshmap.net/
