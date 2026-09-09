@@ -4,8 +4,14 @@ Wired-Ethernet Raspberry Pi + 1 W SX1262 LoRa gateway running **`meshtasticd`**.
 Bridges the Empire12 / Techtaria LoRa mesh to the internet over MQTT, and
 publishes **E12-owned nodes only** to the public Meshtastic map directories.
 
-PartsBin project **[18]**. Status: **bare boards cleared to order 2026-08-12**;
-nothing fabbed or deployed yet. The E22 radio is on order (AliExpress 1773).
+PartsBin project **[18]**. Status: **DEPLOYED AND LIVE 2026-09-09.** The HAT is
+populated, the Pi is wired and provisioned, and the node is on the mesh with the
+MQTT bridge connected.
+
+**The E22 land pattern is VERIFIED.** `meshtasticd` reported `sx1262 init
+success` on first start with the module soldered to a rev A board — so the
+boards fabbed on the recorded `GEOMETRY_OVERRIDE` are good, and that override is
+now cleared in `fab_gate.py`.
 
 **Projected cost ~$81.81**, of which **$35.00 is the Raspberry Pi itself** —
 check the shelf first, a spare 3B/3B+/4 makes that line $0. The next largest
@@ -139,11 +145,11 @@ plugged into such a switch. Copper over J14 is checked for, not assumed.
 | Item | State |
 |---|---|
 | PartsBin project [18] + BOM | **done** — 11 lines |
-| meshtasticd config | **drafted**, untested against real hardware |
-| Device provisioning script | **drafted**, never run against a radio. Admin key comes from Vault (`secret/empire12/meshtastic/admin-key`), not from this repo |
+| meshtasticd config | **verified on hardware** — SX1262 comes up on the documented pinout |
+| Device provisioning script | **run against real hardware 2026-09-09 and fixed** — three defects that aborted it under `set -e` (`position.ok_to_mqtt` is not a field; region/coordinate writes reboot the radio; `mqtt.tls_enabled` is rejected by meshtasticd). Admin key and all channel PSKs come from Vault |
 | HAT PCB | **rev A, gerbers built, cleared to order 2026-08-12.** Mechanically verified against the HAT spec and the Pi 3B+ (see below); 119 segments, 0 vias, DRC 0/0, ERC 0, 27/27 mechanical assertions, schematic netlist matches `netlist.py`. Fab package `out/fab/meshgw-hat-revA-gerbers.zip`. **Exported on a recorded override — U1's land pattern still has not met a physical module. CHECK U1'S FIT BEFORE SOLDERING.** See `fab_gate.py` |
 | Enclosure | **DRAFT** — all three parts render solid, dimensions not validated against a real Pi + HAT stack. Print `coupon` first |
-| Deployment | not started |
+| Deployment | **LIVE 2026-09-09** — wired primary on `meshgw.empire12.net`, MQTT connected, map reporting on. MQTT is PLAINTEXT: meshtasticd rejects the whole MQTT config when `tls_enabled` is set |
 
 ### Bare boards were ordered with U1's land pattern unverified — on purpose
 

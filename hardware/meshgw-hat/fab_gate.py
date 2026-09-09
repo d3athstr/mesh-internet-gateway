@@ -37,7 +37,11 @@ holds the module against the footprint.
 # U1's land pattern has never met a physical part. This is the honest state and
 # it must NOT be flipped to True to make the export run — flip it only when
 # someone has actually checked the module against the footprint.
-GEOMETRY_VERIFIED = False
+# Verified 2026-09-09: the E22-900M30S was soldered to a rev A board and
+# meshtasticd reported `sx1262 init success` on first start, with the radio
+# then transmitting on the mesh. The land pattern is correct; the boards are
+# not scrap. This is a hardware observation, not a re-reading of the datasheet.
+GEOMETRY_VERIFIED = True
 
 # Nothing has been built or bench-tested. Does not block a bare board order.
 FUNCTION_VERIFIED = False
@@ -56,10 +60,11 @@ FUNCTION_VERIFIED = False
 # back would pay that shipping charge again later with certainty, so batching is
 # cheaper in expectation unless no further order is ever placed. If the land
 # pattern is wrong the loss is ~$2 of board plus one re-spin's shipping.
-GEOMETRY_OVERRIDE = (
-    "Don, 2026-08-12 — batch bare board into the shared JLCPCB checkout at "
-    "~$2 marginal; E22 land pattern still unverified, module in transit"
-)
+# Cleared 2026-09-09 — the unknown it covered is resolved (see GEOMETRY_VERIFIED).
+# The override existed so that "we decided to risk it" never got laundered into
+# "verified"; now that the module has actually met the board, the flag is the
+# honest record and the override is not needed.
+GEOMETRY_OVERRIDE = None
 
 # Bumped when the copper changes.
 REV = "A"
